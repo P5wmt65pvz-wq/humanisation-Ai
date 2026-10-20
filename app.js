@@ -3,7 +3,13 @@
   'use strict';
   var H = window.Humaniseur;
   var $ = function (id) { return document.getElementById(id); };
-  var etat = { refus: {}, dernier: null, surligner: true };
+  var etat = { refus: {}, dernier: null, surligner: true, minuteur: null };
+  var LEGENDES = {
+    leger: 'Retire seulement les restes de conversation et les ouvertures creuses.',
+    standard: 'Le bon réglage pour presque tous les textes : formules lourdes, connecteurs en rafale, tirets, phrases trop longues.',
+    fort: 'Va plus loin : registre plus courant, phrases coupées plus tôt, plus aucun tiret long.',
+    complet: 'Réécriture maximale : vocabulaire simplifié, phrases très courtes reliées. Relisez le résultat.'
+  };
   var EXEMPLE = "Bien sûr ! Voici un article sur le télétravail :\n\n## Le télétravail en 2026\n\n" +
     "Dans le monde d'aujourd'hui, le télétravail est un véritable game-changer — il transforme la façon dont les entreprises fonctionnent. " +
     "Il est important de noter que de nombreuses équipes ont adopté ce modèle afin de gagner en flexibilité. " +
@@ -15,10 +21,8 @@
   function fmt(n, d) { return n.toLocaleString('fr-FR', { maximumFractionDigits: d || 0 }); }
   function nbMots(t) { return (t.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length; }
   function mot(n) { return fmt(n) + (n > 1 ? ' mots' : ' mot'); }
-  function options() {
-    return { intensite: (document.querySelector('input[name=niveau]:checked') || {}).value || 'standard',
-             garderForme: $('forme').checked, refus: etat.refus };
-  }
+  function niveau() { return (document.querySelector('input[name=niveau]:checked') || {}).value || 'standard'; }
+  function options() { return { intensite: niveau(), garderForme: $('forme').checked, refus: etat.refus }; }
 
   function dessineSortie(r) {
     var box = $('sortie'); box.textContent = '';
@@ -45,7 +49,9 @@
 
   function dessineModifs(ops) {
     var host = $('modifs'); host.textContent = '';
-    $('titre-modifs').textContent = ops.length ? fmt(ops.length) + (ops.length > 1 ? ' changements' : ' changement') : 'Aucun changement';
+    $('titre-modifs').textContent = ops.length
+      ? 'Voir les ' + fmt(ops.length) + (ops.length > 1 ? ' changements' : ' changement') + ' (et en refuser)'
+      : 'Aucun changement à ce réglage';
     var par = {};
     ops.forEach(function (o) { (par[o.cat] = par[o.cat] || []).push(o); });
     Object.keys(H.CATEGORIES).forEach(function (c) {
@@ -81,37 +87,73 @@
     var r = H.analyse($('entree').value, options());
     etat.dernier = r;
     dessineSortie(r); dessineChiffres(r); dessineSignaux(r.signalements);
+    var n = r.operations.length - Object.keys(etat.refus).length;
     $('compte-sortie').textContent = mot(r.apres.mots);
+    $('resume').textContent = n > 0
+      ? fmt(n) + (n > 1 ? ' changements appliqués' : ' changement appliqué') + ' · ' + mot(r.avant.mots) + ' → ' + mot(r.apres.mots)
+      : 'Rien à changer à ce réglage : essayez « Marqué » ou « Maximum ».';
     $('copier').disabled = !r.texte;
   }
 
   function humaniser() {
+    clearTimeout(etat.minuteur);
     var txt = $('entree').value;
-    if (!/\S/.test(txt)) { $('entree').focus(); return; }
+    if (!/\S/.test(txt)) { vide(); $('entree').focus(); return; }
     etat.refus = {};
     dessineModifs(H.operations(txt, options()));
     $('details').hidden = false;
     majSortie();
-    $('volet-sortie').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (window.matchMedia && window.matchMedia('(max-width: 820px)').matches) {
+      $('volet-sortie').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function vide() {
+    etat.dernier = null; etat.refus = {};
+    $('details').hidden = true; $('resume').textContent = ''; $('compte-sortie').textContent = '';
+    $('sortie').textContent = '';
+    $('sortie').appendChild(el('p', 'vide', 'Le résultat apparaît ici, tout seul, dès que vous avez collé un texte.'));
+    $('copier').disabled = true;
   }
 
   function copier() {
     var b = $('copier'); if (!etat.dernier) return;
-    var fin = function (ok) { b.textContent = ok ? 'Copié ✓' : 'Sélectionnez puis copiez'; setTimeout(function () { b.textContent = 'Copier'; }, 1800); };
+    var fin = function (ok) {
+      b.textContent = ok ? 'Copié ✓' : 'Sélectionnez le texte puis copiez-le';
+      setTimeout(function () { b.textContent = '3 · Copier le texte'; }, 2000);
+    };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(etat.dernier.texte).then(function () { fin(true); }, function () { fin(false); });
     else fin(false);
   }
 
-  $('entree').addEventListener('input', function () { $('compte-entree').textContent = mot(nbMots(this.value)); });
+  function remplir(txt) {
+    $('entree').value = txt;
+    $('compte-entree').textContent = mot(nbMots(txt));
+    humaniser();
+  }
+
+  function legende() { $('legende-force').textContent = LEGENDES[niveau()]; }
+
+  $('entree').addEventListener('input', function () {
+    $('compte-entree').textContent = mot(nbMots(this.value));
+    /* Pendant la frappe, on attend une pause avant de réécrire. */
+    clearTimeout(etat.minuteur);
+    if (/\S/.test(this.value)) etat.minuteur = setTimeout(humaniser, 900); else vide();
+  });
+  /* Un collage est un geste net : le résultat suit tout de suite. */
+  $('entree').addEventListener('paste', function () { setTimeout(function () { $('entree').dispatchEvent(new Event('input')); clearTimeout(etat.minuteur); humaniser(); }, 0); });
   $('go').addEventListener('click', humaniser);
   $('copier').addEventListener('click', copier);
-  $('exemple').addEventListener('click', function () { $('entree').value = EXEMPLE; $('compte-entree').textContent = mot(nbMots(EXEMPLE)); humaniser(); });
-  $('vider').addEventListener('click', function () {
-    $('entree').value = ''; $('compte-entree').textContent = '0 mot'; $('details').hidden = true; etat.dernier = null;
-    $('sortie').textContent = ''; $('sortie').appendChild(el('p', 'vide', 'Le résultat apparaît ici.')); $('compte-sortie').textContent = ''; $('copier').disabled = true; $('entree').focus();
+  $('exemple').addEventListener('click', function () { remplir(EXEMPLE); });
+  $('coller').addEventListener('click', function () {
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText().then(function (t) { if (t) remplir(t); else $('entree').focus(); }, function () { $('entree').focus(); });
+    } else $('entree').focus();
   });
+  $('vider').addEventListener('click', function () { $('entree').value = ''; $('compte-entree').textContent = '0 mot'; vide(); $('entree').focus(); });
   $('surligner').addEventListener('change', function () { etat.surligner = this.checked; if (etat.dernier) dessineSortie(etat.dernier); });
   Array.prototype.forEach.call(document.querySelectorAll('input[name=niveau], #forme'), function (i) {
-    i.addEventListener('change', function () { if (etat.dernier) humaniser(); });
+    i.addEventListener('change', function () { legende(); if (/\S/.test($('entree').value)) humaniser(); });
   });
+  legende();
 })();

@@ -74,3 +74,15 @@ del { color: var(--ko); } ins { color: var(--ok); text-decoration: none; font-we
 .pied { max-width: 1120px; margin: 0 auto; padding: 24px 20px 40px; color: var(--doux); font-size: .88rem; border-top: 1px solid var(--bord); }
 @media (max-width: 820px) { .atelier { grid-template-columns: minmax(0, 1fr); } textarea, .sortie { min-height: 220px; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.etapes { list-style: none; padding: 0; margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px; }
+.etapes li { display: flex; align-items: center; gap: 8px; background: var(--carte); border: 1px solid var(--bord); border-radius: 99px; padding: 6px 16px 6px 8px; font-size: .95rem; }
+.etapes b { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--encre-accent); font-size: .85rem; }
+button.gros { padding: 13px 26px; font-size: 1.05rem; }
+.force { border: 1px solid var(--bord); border-radius: 12px; padding: 10px 14px 12px; display: grid; gap: 8px; min-width: 0; }
+.force legend { padding: 0 6px; font-size: .85rem; color: var(--doux); }
+.legende { font-size: .88rem; color: var(--doux); min-height: 1.4em; }
+.resume { font-size: .88rem; color: var(--doux); min-height: 1.4em; }
+details.plus { margin-top: 26px; background: var(--carte); border: 1px solid var(--bord); border-radius: 14px; padding: 4px 16px 16px; }
+details.plus > summary { cursor: pointer; padding: 12px 0; font-weight: 700; font-family: var(--serif); font-size: 1.1rem; }
+details.plus .chiffres { margin-top: 16px; }

@@ -18,65 +18,72 @@
 <main>
   <section class="intro">
     <h1>Un texte d'IA, <em>qui sonne comme vous.</em></h1>
-    <p>Collez votre texte, choisissez l'intensité, cliquez. L'humaniseur retire les formules creuses,
-       les tirets en série et les restes de conversation, varie le rythme et remplace le jargon par des mots de tous les jours.</p>
+    <ol class="etapes" aria-label="Mode d'emploi">
+      <li><b>1</b> Collez votre texte</li>
+      <li><b>2</b> Cliquez sur « Humaniser »</li>
+      <li><b>3</b> Copiez le résultat</li>
+    </ol>
   </section>
 
   <section class="atelier" aria-label="Atelier">
     <div class="volet">
       <div class="volet-tete">
-        <label for="entree">Votre texte</label>
+        <label for="entree">1 · Votre texte</label>
         <span class="compte" id="compte-entree">0 mot</span>
       </div>
-      <textarea id="entree" spellcheck="false" placeholder="Collez ici le texte à humaniser (français)…"></textarea>
-      <div class="commandes">
-        <div class="segments" role="radiogroup" aria-label="Intensité">
-          <label><input type="radio" name="niveau" value="leger"><span>Léger</span></label>
-          <label><input type="radio" name="niveau" value="standard" checked><span>Standard</span></label>
-          <label><input type="radio" name="niveau" value="fort"><span>Fort</span></label>
-          <label><input type="radio" name="niveau" value="complet"><span>Complet</span></label>
-        </div>
-        <label class="case"><input type="checkbox" id="forme"><span>Garder titres et gras</span></label>
-      </div>
+      <textarea id="entree" spellcheck="false" placeholder="Collez ici le texte écrit par une IA (en français).&#10;&#10;Pas de texte sous la main ? Cliquez sur « Essayer un exemple »."></textarea>
       <div class="actions">
-        <button type="button" class="principal" id="go">Humaniser</button>
+        <button type="button" class="principal gros" id="go">2 · Humaniser</button>
+        <button type="button" class="discret" id="coller">Coller</button>
         <button type="button" class="discret" id="exemple">Essayer un exemple</button>
         <button type="button" class="discret" id="vider">Vider</button>
       </div>
+      <fieldset class="force">
+        <legend>Force de la réécriture</legend>
+        <div class="segments" role="radiogroup" aria-label="Force de la réécriture">
+          <label><input type="radio" name="niveau" value="leger"><span>Discret</span></label>
+          <label><input type="radio" name="niveau" value="standard" checked><span>Équilibré</span></label>
+          <label><input type="radio" name="niveau" value="fort"><span>Marqué</span></label>
+          <label><input type="radio" name="niveau" value="complet"><span>Maximum</span></label>
+        </div>
+        <p class="legende" id="legende-force"></p>
+        <label class="case"><input type="checkbox" id="forme"><span>Garder les titres et le gras</span></label>
+      </fieldset>
     </div>
 
     <div class="volet sortie-volet" id="volet-sortie" aria-live="polite">
       <div class="volet-tete">
-        <h2 id="titre-sortie">Version humanisée</h2>
+        <h2 id="titre-sortie">3 · Version humanisée</h2>
         <span class="compte" id="compte-sortie"></span>
       </div>
       <div id="sortie" class="sortie" tabindex="0" aria-labelledby="titre-sortie">
-        <p class="vide">Le résultat apparaît ici.</p>
+        <p class="vide">Le résultat apparaît ici, tout seul, dès que vous avez collé un texte.</p>
       </div>
+      <p class="resume" id="resume"></p>
       <div class="actions">
-        <button type="button" class="principal" id="copier" disabled>Copier</button>
-        <label class="case"><input type="checkbox" id="surligner" checked><span>Surligner les changements</span></label>
+        <button type="button" class="principal gros" id="copier" disabled>3 · Copier le texte</button>
+        <label class="case"><input type="checkbox" id="surligner" checked><span>Surligner ce qui a changé</span></label>
       </div>
     </div>
   </section>
 
-  <section id="details" hidden>
-    <ul class="chiffres" id="chiffres"></ul>
-    <h2 id="titre-modifs" class="titre-section">Changements</h2>
-    <p class="aide">Décochez un changement pour le refuser : le texte se met à jour.</p>
+  <details id="details" class="plus" hidden>
+    <summary id="titre-modifs">Voir ce qui a changé</summary>
+    <p class="aide">Un changement ne vous plaît pas ? Décochez-le : le texte se met à jour.</p>
     <div id="modifs"></div>
+    <ul class="chiffres" id="chiffres"></ul>
     <div id="signaux-bloc" hidden>
-      <h2 class="titre-section">Ce que seul vous pouvez ajouter</h2>
-      <p class="aide">Repéré, mais pas réécrit : il y faut du fond que l'outil n'a pas.</p>
+      <h2 class="titre-section">À ajouter vous-même</h2>
+      <p class="aide">Repéré mais pas réécrit : il y faut du fond que l'outil n'a pas.</p>
       <div id="signaux" class="signaux"></div>
     </div>
-  </section>
+  </details>
 
   <section class="honnete">
     <h2>Ce que fait cet outil, et ce qu'il ne fait pas</h2>
     <ul>
       <li><b>Il applique des règles écrites</b>, lisibles une par une dans la liste des changements. Il n'y a pas d'IA dans la page : tout se passe dans votre navigateur.</li>
-      <li><b>Il ne garantit rien sur les détecteurs d'IA.</b> Ils se trompent dans les deux sens. Si une école, un éditeur ou un employeur demande de déclarer l'usage d'une IA, déclarez-le.</li>
+      <li><b>Il ne garantit rien sur les détecteurs d'IA.</b> Réécrire un texte change les signaux que ces outils examinent (formules répétées, rythme uniforme), mais personne ne peut promettre leur verdict : il varie d'un détecteur à l'autre et d'une version à l'autre, et ils se trompent dans les deux sens. Le moyen le plus solide reste d'ajouter vos propres faits, exemples et avis. Si une école, un éditeur ou un employeur demande de déclarer l'usage d'une IA, déclarez-le.</li>
       <li><b>Il ne vérifie aucun fait.</b> Un texte généré peut contenir des chiffres, citations ou sources inventés : relisez avant de publier.</li>
       <li><b>Il ne fabrique pas ce qui rend un texte vivant</b> : un nom, une date vérifiée, un cas vécu, un avis assumé. C'est vous qui l'avez.</li>
       <li>Français uniquement.</li>
