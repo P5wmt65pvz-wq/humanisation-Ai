@@ -22,7 +22,7 @@
   function nbMots(t) { return (t.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length; }
   function mot(n) { return fmt(n) + (n > 1 ? ' mots' : ' mot'); }
   function niveau() { return (document.querySelector('input[name=niveau]:checked') || {}).value || 'standard'; }
-  function options() { return { intensite: niveau(), garderForme: $('forme').checked, refus: etat.refus }; }
+  function options() { return { intensite: niveau(), garderForme: $('forme').checked, corriger: $('corriger').checked, refus: etat.refus }; }
 
   function dessineSortie(r) {
     var box = $('sortie'); box.textContent = '';
@@ -152,7 +152,7 @@
   });
   $('vider').addEventListener('click', function () { $('entree').value = ''; $('compte-entree').textContent = '0 mot'; vide(); $('entree').focus(); });
   $('surligner').addEventListener('change', function () { etat.surligner = this.checked; if (etat.dernier) dessineSortie(etat.dernier); });
-  Array.prototype.forEach.call(document.querySelectorAll('input[name=niveau], #forme'), function (i) {
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=niveau], #forme, #corriger'), function (i) {
     i.addEventListener('change', function () { legende(); if (/\S/.test($('entree').value)) humaniser(); });
   });
   legende();

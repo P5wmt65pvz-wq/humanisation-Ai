@@ -181,3 +181,69 @@ test('la page n\'écrit aucune promesse sur les détecteurs', () => {
   assert.match(html, /ne garantit rien sur les détecteurs/);
   assert.doesNotMatch(html, /indétectable|contourne|échappe aux détecteurs|100 ?% humain|passe tous les/i);
 });
+
+/* ------------------------------------------------------------ orthographe */
+const c = (txt, extra = {}) => H.analyse(txt, { intensite: 'leger', corriger: true, ...extra }).texte;
+
+test('la correction est désactivée par défaut dans le moteur', () => {
+  assert.equal(H.analyse('apres le travail', { intensite: 'leger' }).texte, 'apres le travail');
+});
+
+test('accents oubliés et mots collés', () => {
+  assert.equal(c('Aujourdhui, apres le travail, ca va tres bien.'), "Aujourd'hui, après le travail, ça va très bien.");
+  assert.equal(c('cest deja la premiere fois, jai peutetre tort'), "c'est déjà la première fois, j'ai peut-être tort");
+  assert.equal(c('Elle a un coeur et une oeuvre.'), 'Elle a un cœur et une œuvre.');
+});
+
+test('la casse est conservée, même en majuscules', () => {
+  assert.equal(c('Apres. APRES tout.'), 'Après. APRÈS tout.');
+  assert.equal(c('Ca va ? Oui, ca va.'), 'Ça va ? Oui, ça va.');
+  assert.equal(c('Le CA de 2024 monte.'), 'Le CA de 2024 monte.', 'un sigle n\'est pas « ça »');
+});
+
+test('expressions et traits d\'union', () => {
+  assert.equal(c("c est a dire que c'est ok"), "c'est-à-dire que c'est ok");
+  assert.equal(c('Il est au dessus, la bas, a cause de moi.'), 'Il est au-dessus, là-bas, à cause de moi.');
+  assert.equal(c('celui ci et celle la'), 'celui-ci et celle-là');
+});
+
+test('un texte déjà correct n\'est pas touché, apostrophe courbe comprise', () => {
+  const ok = "Aujourd’hui, c’est-à-dire après le déjà-vu, ça va très bien. L’été est là.";
+  assert.equal(c(ok), ok);
+});
+
+test('les adresses, nombres, codes et mots anglais ne sont jamais touchés', () => {
+  const s = 'Voir www.exemple.com/apres et jean@apres.fr, 3,5 euros, node.js, a different general experience, e.g. tres';
+  assert.equal(c(s), s.replace(' tres', ' très'));
+});
+
+test('espaces et majuscules oubliées', () => {
+  assert.equal(c('Bonjour,ça va;bien.Merci beaucoup.'), 'Bonjour, ça va; bien. Merci beaucoup.');
+  assert.equal(c("Il dort. puis il mange! et voilà. l' homme"), "Il dort. Puis il mange! Et voilà. l'homme");
+  assert.equal(c("l' homme et qu' il"), "l'homme et qu'il");
+});
+
+test('les abréviations ne déclenchent pas de majuscule', () => {
+  const s = 'Voir fig. 3 et etc. puis cf. page 4, p. ex. ceci, M. dupont, 3.5 et 1.2';
+  assert.equal(c(s), s);
+});
+
+test('mots répétés : seulement les mots grammaticaux qui ne se répètent jamais', () => {
+  assert.equal(c('Le le chat et et le chien de de la rue.'), 'Le chat et le chien de la rue.');
+  assert.equal(c('Nous nous sommes vus, vous vous souvenez, bien bien.'), 'Nous nous sommes vus, vous vous souvenez, bien bien.');
+});
+
+test('chaque correction est refusable et la sortie est stable', () => {
+  const src = 'Apres le travail, ca va. Le le chat dort.';
+  const ops = H.operations(src, { intensite: 'leger', corriger: true });
+  assert.ok(ops.length >= 3 && ops.every((o) => o.cat === 'faute'));
+  const refus = {}; refus[ops[0].id] = true;
+  assert.match(H.analyse(src, { intensite: 'leger', corriger: true, refus }).texte, /^Apres le travail/);
+  const une = c(src);
+  assert.equal(c(une), une);
+});
+
+test('la correction cohabite avec l\'humanisation', () => {
+  const r = H.analyse("Dans le monde d'aujourd'hui, il est important de noter que le systeme est tres rapide.", { intensite: 'standard', corriger: true }).texte;
+  assert.equal(r, 'Le système est très rapide.');
+});

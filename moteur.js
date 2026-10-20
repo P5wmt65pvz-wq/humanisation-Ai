@@ -21,6 +21,7 @@
   var NIVEAUX = { leger: 1, standard: 2, fort: 3, complet: 4 };
 
   var CATEGORIES = {
+    faute:  { label: 'Fautes corrigées', aide: 'Fautes d\'orthographe courantes, espaces et majuscules oubliées, mots répétés.' },
     robot:  { label: 'Restes de conversation', aide: 'Phrases d\'assistant collées avec le texte : « Bien sûr ! », « N\'hésitez pas… ».' },
     creux:  { label: 'Formules creuses', aide: 'Des mots qui occupent la place sans rien apprendre au lecteur.' },
     lourd:  { label: 'Tournures lourdes', aide: 'Un mot courant dit la même chose.' },
@@ -431,6 +432,160 @@
     return ops;
   }
 
+
+  /* ------------------------------------------------------- fautes courantes
+     Correction SÛRE, pas exhaustive : on ne touche qu'à ce qui est faux sans
+     ambiguïté. Un mot accentué à tort ne figure jamais ici, ni un mot qui
+     existe aussi sans accent (« du/dû », « sur/sûr », « cote/côte »), ni un mot
+     qui est aussi de l'anglais (« different », « role », « theme »). Aucune
+     grammaire : accords, conjugaisons et homophones (a/à, ce/se…) ne sont pas
+     vérifiés. */
+
+  /* Mots écrits sans leurs accents (ou collés). Clé = forme fautive, en
+     minuscules. Les pluriels et féminins sont déclarés explicitement. */
+  var MOTS_FAUTIFS = (function () {
+    var m = {};
+    var simple = {
+      apres: 'après', deja: 'déjà', tres: 'très', voila: 'voilà', etre: 'être', ete: 'été',
+      meme: 'même', memes: 'mêmes', bientot: 'bientôt', plutot: 'plutôt', pres: 'près',
+      ecole: 'école', ecoles: 'écoles', ecrire: 'écrire', ecrit: 'écrit', ecrits: 'écrits',
+      egalement: 'également', equipe: 'équipe', equipes: 'équipes', etat: 'état', etats: 'états',
+      etude: 'étude', etudes: 'études', etudiant: 'étudiant', etudiants: 'étudiants', etranger: 'étranger',
+      evidemment: 'évidemment', evenement: 'événement', evenements: 'événements',
+      facon: 'façon', facons: 'façons', francais: 'français', francaise: 'française', francaises: 'françaises',
+      garcon: 'garçon', garcons: 'garçons', lecon: 'leçon', lecons: 'leçons', recu: 'reçu', recus: 'reçus',
+      premiere: 'première', premieres: 'premières', derniere: 'dernière', dernieres: 'dernières',
+      entiere: 'entière', entieres: 'entières', lumiere: 'lumière', lumieres: 'lumières',
+      maniere: 'manière', manieres: 'manières', matiere: 'matière', matieres: 'matières',
+      frere: 'frère', freres: 'frères', mere: 'mère', meres: 'mères', pere: 'père', peres: 'pères',
+      probleme: 'problème', problemes: 'problèmes', systeme: 'système', systemes: 'systèmes',
+      poeme: 'poème', poemes: 'poèmes', progres: 'progrès', acces: 'accès', succes: 'succès', proces: 'procès',
+      interet: 'intérêt', interets: 'intérêts', foret: 'forêt', forets: 'forêts', tete: 'tête', tetes: 'têtes',
+      fenetre: 'fenêtre', fenetres: 'fenêtres', hopital: 'hôpital', hopitaux: 'hôpitaux',
+      necessaire: 'nécessaire', necessaires: 'nécessaires', specifique: 'spécifique', specifiques: 'spécifiques',
+      resultat: 'résultat', resultats: 'résultats', reseau: 'réseau', reseaux: 'réseaux',
+      securite: 'sécurité', societe: 'société', societes: 'sociétés', qualite: 'qualité', qualites: 'qualités',
+      possibilite: 'possibilité', possibilites: 'possibilités', activite: 'activité', activites: 'activités',
+      difficulte: 'difficulté', difficultes: 'difficultés', developpement: 'développement', developpements: 'développements',
+      developement: 'développement', dévelopement: 'développement', developper: 'développer',
+      /* contractions sans apostrophe : aucune n'est un mot français */
+      cest: "c'est", jai: "j'ai", quil: "qu'il", quils: "qu'ils", quon: "qu'on", dun: "d'un",
+      daccord: "d'accord", dailleurs: "d'ailleurs", dabord: "d'abord", quelquun: "quelqu'un", quelquune: "quelqu'une",
+      lorsquil: "lorsqu'il", lorsquils: "lorsqu'ils", jusqua: "jusqu'à", peutetre: 'peut-être',
+      parceque: 'parce que', malgres: 'malgré', malgre: 'malgré',
+      /* ligature œ */
+      coeur: 'cœur', coeurs: 'cœurs', soeur: 'sœur', soeurs: 'sœurs', oeuvre: 'œuvre', oeuvres: 'œuvres',
+      oeil: 'œil', oeuf: 'œuf', oeufs: 'œufs', voeu: 'vœu', voeux: 'vœux', boeuf: 'bœuf', noeud: 'nœud', noeuds: 'nœuds',
+      manoeuvre: 'manœuvre', moeurs: 'mœurs'
+    };
+    Object.keys(simple).forEach(function (k) { m[k] = simple[k]; });
+    return m;
+  })();
+
+  /* Expressions de plusieurs mots (ou avec trait d'union). */
+  var EXPRESSIONS = [
+    [/(?<![\p{L}\p{N}])aujourd[’']?[ ]?hui(?![\p{L}\p{N}])/giu, function () { return "aujourd'hui"; }],
+    [/(?<![\p{L}\p{N}])c(['’ ])est[ -][àa][ -]dire(?![\p{L}\p{N}])/giu, function (m) { return 'c' + (m[1] === ' ' ? "'" : m[1]) + 'est-à-dire'; }],
+    [/(?<![\p{L}\p{N}])[àa] cause (?=(?:de|du|des|d['’]))/giu, function () { return 'à cause '; }],
+    [/(?<![\p{L}\p{N}])a travers(?![\p{L}\p{N}])/giu, function () { return 'à travers'; }],
+    [/(?<![\p{L}\p{N}])[àa] peu pr[èe]s(?![\p{L}\p{N}])/giu, function () { return 'à peu près'; }],
+    [/(?<![\p{L}\p{N}])quand m[êe]me(?![\p{L}\p{N}])/giu, function () { return 'quand même'; }],
+    [/(?<![\p{L}\p{N}])(au|par)[ -]dessus(?![\p{L}\p{N}])/giu, function (m) { return m[1] + '-dessus'; }],
+    [/(?<![\p{L}\p{N}])au[ -]dessous(?![\p{L}\p{N}])/giu, function () { return 'au-dessous'; }],
+    [/(?<![\p{L}\p{N}])au[ -]del[àa](?![\p{L}\p{N}])/giu, function () { return 'au-delà'; }],
+    [/(?<![\p{L}\p{N}])l[àa][ -](bas|haut)(?![\p{L}\p{N}])/giu, function (m) { return 'là-' + m[1].toLowerCase(); }],
+    [/(?<![\p{L}\p{N}])(celui|celle|ceux|celles)[ -](ci|l[àa])(?![\p{L}\p{N}])/giu, function (m) { return m[1] + '-' + (/^ci$/i.test(m[2]) ? 'ci' : 'là'); }]
+  ];
+
+  var ABREV_PHRASE = { etc: 1, cf: 1, env: 1, fig: 1, art: 1, chap: 1, vs: 1, ex: 1, resp: 1, apr: 1, tel: 1, tél: 1,
+    mme: 1, mlle: 1, pp: 1, no: 1, ch: 1, st: 1, ste: 1, dr: 1, pr: 1, mr: 1, mm: 1, max: 1, min: 1, vol: 1, op: 1, ibid: 1, sté: 1, éd: 1, hab: 1, dép: 1, dir: 1 };
+  var REPETABLES = '(?:le|la|les|un|une|des|du|de|et|à|en|dans|pour|sur|avec|par|au|aux|que|qui)';
+
+  function calqueMot(orig, rempl) {
+    if (orig.length > 3 && orig === orig.toUpperCase()) return rempl.toUpperCase();
+    return orig.charAt(0) !== orig.charAt(0).toLowerCase() ? cap(rempl) : rempl;
+  }
+
+  function opFaute(txt, deb, fin, apres, pourquoi) {
+    var avant = txt.slice(deb, fin);
+    if (avant === apres || avant.replace(/’/g, "'") === apres.replace(/’/g, "'")) return null;
+    return { rule: 'faute', cat: 'faute', deb: deb, fin: fin, avant: avant, apres: apres, pourquoi: pourquoi, niveau: 1 };
+  }
+
+  function opsFautes(txt) {
+    var ops = [], m, o;
+
+    /* 1. mots sans accents ou collés, un par un */
+    var mot = /(?<![\p{L}\p{N}@#\/._])\p{L}+(?![\p{L}\p{N}@\/_]|\.\p{L})/gu;
+    while ((m = mot.exec(txt))) {
+      var w = m[0], k = w.toLowerCase();
+      if (w === 'CA') continue;
+      var rempl = (k === 'ca') ? 'ça' : MOTS_FAUTIFS.hasOwnProperty(k) ? MOTS_FAUTIFS[k] : null;
+      if (!rempl) continue;
+      if (w.length <= 3 && w === w.toUpperCase() && w.length > 1) continue;   // sigle
+      o = opFaute(txt, m.index, m.index + w.length, calqueMot(w, rempl),
+        k === 'ca' ? '« ça » prend une cédille.' : 'Orthographe : « ' + rempl + ' ».');
+      if (o) ops.push(o);
+    }
+
+    /* 2. expressions */
+    EXPRESSIONS.forEach(function (e) {
+      var re = new RegExp(e[0].source, e[0].flags);
+      while ((m = re.exec(txt))) {
+        if (!m[0]) { re.lastIndex++; continue; }
+        var r = e[1](m);
+        if (e[2]) r = e[2];
+        o = opFaute(txt, m.index, m.index + m[0].length, calqueMot(m[0], r), 'Orthographe : « ' + r + ' ».');
+        if (o) ops.push(o);
+      }
+    });
+
+    /* 3. espace oublié après une virgule, un point-virgule, ou un point suivi
+       d'une majuscule. On ne regarde que les mots « ordinaires » : jamais une
+       adresse, un fichier, un code ou un nombre. */
+    var tok = /\S+/gu, t;
+    while ((t = tok.exec(txt))) {
+      var s0 = t[0];
+      if (/[@\/\\=_#:]|\d/.test(s0)) continue;
+      var vir = /(?<=\p{L})([,;])(?=\p{L})/gu, v;
+      while ((v = vir.exec(s0))) {
+        o = opFaute(txt, t.index + v.index, t.index + v.index + 1, v[1] + ' ', 'Une espace après la ponctuation.');
+        if (o) ops.push(o);
+      }
+      var pt = /(?<![\p{L}])\p{Ll}{3,}(\.)(?=\p{Lu}\p{Ll}{2})/gu, p;
+      while ((p = pt.exec(s0))) {
+        var pos = t.index + p.index + p[0].length - 1;
+        o = opFaute(txt, pos, pos + 1, '. ', 'Une espace après le point.');
+        if (o) ops.push(o);
+      }
+    }
+
+    /* 4. espace parasite après une apostrophe : « l' homme » */
+    var apo = /(?<![\p{L}])(qu|jusqu|lorsqu|puisqu|[ldjnmtsc])(['’])[ \t]+(?=\p{L})/giu;
+    while ((m = apo.exec(txt))) {
+      o = opFaute(txt, m.index, m.index + m[0].length, m[1] + m[2], 'Pas d\'espace après l\'apostrophe.');
+      if (o) ops.push(o);
+    }
+
+    /* 5. mot grammatical répété : « le le » */
+    var dbl = new RegExp('(?<![\\p{L}\\p{N}\'’-])(' + REPETABLES + ')[ \\t]+\\1(?![\\p{L}\\p{N}\'’-])', 'giu');
+    while ((m = dbl.exec(txt))) {
+      o = opFaute(txt, m.index, m.index + m[0].length, m[1], 'Mot répété.');
+      if (o) ops.push(o);
+    }
+
+    /* 6. majuscule oubliée après un point final, ?, ! (sauf abréviation) */
+    var maj = /(?<![\p{L}\p{N}.])(\p{L}+)([.!?])([ \t]+)(\p{Ll})/gu;
+    while ((m = maj.exec(txt))) {
+      var mt = m[1];
+      if (m[2] === '.' && (mt.length < 2 || ABREV_PHRASE[mt.toLowerCase()])) continue;
+      var d = m.index + mt.length + 1 + m[3].length;
+      o = opFaute(txt, d, d + 1, m[4].toUpperCase(), 'Une phrase commence par une majuscule.');
+      if (o) ops.push(o);
+    }
+    return ops;
+  }
+
   /* Rassemble toutes les opérations. À chevauchement, la plus longue gagne
      (une phrase entière retirée l'emporte sur un mot à l'intérieur). */
   function operations(txt, opts) {
@@ -439,6 +594,7 @@
     var niveau = NIVEAUX[opts.intensite] || 2;
     var toutes = opsDesRegles(txt, niveau)
       .concat(opsLiaison(txt, niveau), opsRythme(txt, niveau), opsFusion(txt, niveau), opsTirets(txt, niveau));
+    if (opts.corriger) toutes = toutes.concat(opsFautes(txt));
     if (!opts.garderForme) toutes = toutes.concat(opsFormat(txt));
     /* Balayage de gauche à droite ; quand deux opérations se chevauchent, la
        plus longue des deux reste (une phrase entière retirée l'emporte sur un
