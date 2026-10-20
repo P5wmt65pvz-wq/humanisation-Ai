@@ -9,7 +9,7 @@ Rend un texte écrit par une IA plus naturel : formules creuses, restes de conve
 ## Développement
 
 ```
-node --test test/      # tests du moteur
+node --test test/*.mjs      # tests du moteur
 python3 -m http.server # puis ouvrir http://localhost:8000
 ```
 
