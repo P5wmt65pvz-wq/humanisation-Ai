@@ -83,6 +83,15 @@ button.gros { padding: 13px 26px; font-size: 1.05rem; }
 .force legend { padding: 0 6px; font-size: .85rem; color: var(--doux); }
 .legende { font-size: .88rem; color: var(--doux); min-height: 1.4em; }
 .resume { font-size: .88rem; color: var(--doux); min-height: 1.4em; }
+details.ia { border: 1px solid var(--bord); border-radius: 12px; padding: 4px 14px 12px; display: grid; gap: 10px; }
+details.ia > summary { cursor: pointer; padding: 8px 0; font-weight: 600; }
+.champ { display: grid; gap: 4px; font-size: .9rem; color: var(--doux); }
+.champ input, .champ select { font: inherit; color: var(--texte); background: transparent; border: 1px solid var(--bord); border-radius: 10px; padding: 9px 12px; min-width: 0; }
+.champ select option { background: var(--carte); color: var(--texte); }
+.champ input:focus-visible, .champ select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#ia-reglages { display: grid; gap: 10px; }
+.etat-ia { font-size: .9rem; min-height: 1.3em; color: var(--doux); }
+.etat-ia.erreur { color: var(--ko); font-weight: 600; }
 details.plus { margin-top: 26px; background: var(--carte); border: 1px solid var(--bord); border-radius: 14px; padding: 4px 16px 16px; }
 details.plus > summary { cursor: pointer; padding: 12px 0; font-weight: 700; font-family: var(--serif); font-size: 1.1rem; }
 details.plus .chiffres { margin-top: 16px; }

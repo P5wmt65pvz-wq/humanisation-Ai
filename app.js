@@ -2,8 +2,9 @@
 (function () {
   'use strict';
   var H = window.Humaniseur;
+  var IA = window.HumaniseurIA;
   var $ = function (id) { return document.getElementById(id); };
-  var etat = { refus: {}, dernier: null, surligner: true, minuteur: null };
+  var etat = { refus: {}, dernier: null, surligner: true, minuteur: null, ia: null, cle: '', occupe: false };
   var LEGENDES = {
     leger: 'Retire seulement les restes de conversation et les ouvertures creuses.',
     standard: 'Le bon réglage pour presque tous les textes : formules lourdes, connecteurs en rafale, tirets, phrases trop longues.',
@@ -21,6 +22,14 @@
   function fmt(n, d) { return n.toLocaleString('fr-FR', { maximumFractionDigits: d || 0 }); }
   function nbMots(t) { return (t.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) || []).length; }
   function mot(n) { return fmt(n) + (n > 1 ? ' mots' : ' mot'); }
+  function iaActif() { return $('ia-actif').checked; }
+  /* Le texte sur lequel travaille le moteur local : la réécriture de l'IA si
+     elle existe pour ce texte, sinon le texte saisi. */
+  function source() {
+    var v = $('entree').value;
+    return (iaActif() && etat.ia && etat.ia.entree === v) ? etat.ia.sortie : v;
+  }
+  function etatIA(msg, erreur) { var e = $('ia-etat'); e.textContent = msg || ''; e.className = 'etat-ia' + (erreur ? ' erreur' : ''); }
   function niveau() { return (document.querySelector('input[name=niveau]:checked') || {}).value || 'standard'; }
   function options() { return { intensite: niveau(), garderForme: $('forme').checked, corriger: $('corriger').checked, refus: etat.refus }; }
 
@@ -84,7 +93,7 @@
   }
 
   function majSortie() {
-    var r = H.analyse($('entree').value, options());
+    var r = H.analyse(source(), options());
     etat.dernier = r;
     dessineSortie(r); dessineChiffres(r); dessineSignaux(r.signalements);
     var n = r.operations.length - Object.keys(etat.refus).length;
@@ -95,17 +104,40 @@
     $('copier').disabled = !r.texte;
   }
 
-  function humaniser() {
+  function humaniser(explicite) {
     clearTimeout(etat.minuteur);
     var txt = $('entree').value;
     if (!/\S/.test(txt)) { vide(); $('entree').focus(); return; }
+    if (iaActif() && !(etat.ia && etat.ia.entree === txt)) {
+      /* Jamais d'envoi sans un clic : la frappe, le collage et les réglages
+         ne déclenchent pas l'appel réseau. */
+      if (explicite === true) return appelIA(txt);
+      etatIA('Cliquez sur « Humaniser » pour lancer la réécriture par IA.');
+      return;
+    }
     etat.refus = {};
-    dessineModifs(H.operations(txt, options()));
+    dessineModifs(H.operations(source(), options()));
     $('details').hidden = false;
     majSortie();
     if (window.matchMedia && window.matchMedia('(max-width: 820px)').matches) {
       $('volet-sortie').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  }
+
+  function appelIA(txt) {
+    if (etat.occupe) return;
+    var cle = $('ia-cle').value.trim();
+    if (!cle) { etatIA('Entrez votre clé API pour utiliser le mode IA.', true); $('ia-cle').focus(); return; }
+    etat.occupe = true; $('go').disabled = true; $('go').textContent = 'Réécriture en cours…';
+    etatIA('Réécriture par Claude en cours, cela peut prendre une demi-minute…');
+    retenirCle();
+    IA.reecrire(txt, { cle: cle, modele: $('ia-modele').value, style: $('ia-style').value, garderForme: $('forme').checked })
+      .then(function (sortie) {
+        etat.ia = { entree: txt, sortie: sortie };
+        etatIA('Réécrit par Claude, puis corrigé localement.');
+        humaniser(false);
+      }, function (e) { etatIA(e.message, true); })
+      .then(function () { etat.occupe = false; $('go').disabled = false; $('go').textContent = '2 · Humaniser'; });
   }
 
   function vide() {
@@ -136,13 +168,15 @@
 
   $('entree').addEventListener('input', function () {
     $('compte-entree').textContent = mot(nbMots(this.value));
-    /* Pendant la frappe, on attend une pause avant de réécrire. */
+    /* Pendant la frappe, on attend une pause avant de réécrire (en local). */
     clearTimeout(etat.minuteur);
-    if (/\S/.test(this.value)) etat.minuteur = setTimeout(humaniser, 900); else vide();
+    if (!/\S/.test(this.value)) vide();
+    else if (!iaActif()) etat.minuteur = setTimeout(humaniser, 900);
+    else if (!(etat.ia && etat.ia.entree === this.value)) etatIA('Cliquez sur « Humaniser » pour lancer la réécriture par IA.');
   });
   /* Un collage est un geste net : le résultat suit tout de suite. */
   $('entree').addEventListener('paste', function () { setTimeout(function () { $('entree').dispatchEvent(new Event('input')); clearTimeout(etat.minuteur); humaniser(); }, 0); });
-  $('go').addEventListener('click', humaniser);
+  $('go').addEventListener('click', function () { humaniser(true); });
   $('copier').addEventListener('click', copier);
   $('exemple').addEventListener('click', function () { remplir(EXEMPLE); });
   $('coller').addEventListener('click', function () {
@@ -155,5 +189,20 @@
   Array.prototype.forEach.call(document.querySelectorAll('input[name=niveau], #forme, #corriger'), function (i) {
     i.addEventListener('change', function () { legende(); if (/\S/.test($('entree').value)) humaniser(); });
   });
+  $('ia-actif').addEventListener('change', function () {
+    $('ia-reglages').hidden = !this.checked;
+    etatIA('');
+    if (/\S/.test($('entree').value)) humaniser(false);
+  });
+  try { var k = localStorage.getItem('humaniseur.cle'); if (k) { $('ia-cle').value = k; $('ia-retenir').checked = true; } } catch (e) {}
+  function retenirCle() {
+    try {
+      var cle = $('ia-cle').value.trim();
+      if ($('ia-retenir').checked && cle) localStorage.setItem('humaniseur.cle', cle);
+      else localStorage.removeItem('humaniseur.cle');
+    } catch (e) { /* stockage indisponible : la clé reste en mémoire seulement */ }
+  }
+  $('ia-retenir').addEventListener('change', retenirCle);
+  $('ia-cle').addEventListener('input', function () { if ($('ia-retenir').checked) retenirCle(); });
   legende();
 })();

@@ -6,6 +6,7 @@
 <title>Humaniseur de texte — rend un texte d'IA plus naturel</title>
 <meta name="description" content="Collez un texte écrit par une IA et obtenez une version plus naturelle : formules creuses, tirets, rythme, vocabulaire. Gratuit, sans compte, rien n'est envoyé.">
 <meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; connect-src https://api.anthropic.com; base-uri 'none'; form-action 'none'">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c2410c'/%3E%3Cpath d='M9 23l1-4 9-9a2 2 0 0 1 3 3l-9 9z' fill='none' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -50,6 +51,24 @@
         <label class="case"><input type="checkbox" id="corriger" checked><span>Corriger aussi les fautes d'orthographe courantes</span></label>
         <label class="case"><input type="checkbox" id="forme"><span>Garder les titres et le gras</span></label>
       </fieldset>
+      <details class="ia" id="bloc-ia">
+        <summary>Réécriture par IA (optionnel, la plus naturelle)</summary>
+        <label class="case"><input type="checkbox" id="ia-actif"><span>Réécrire avec Claude</span></label>
+        <div id="ia-reglages" hidden>
+          <label class="champ">Votre clé API Anthropic
+            <input type="password" id="ia-cle" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+          </label>
+          <label class="case"><input type="checkbox" id="ia-retenir"><span>Retenir la clé sur cet appareil</span></label>
+          <label class="champ">Modèle
+            <select id="ia-modele"><option value="opus">Claude Opus 5.5 — qualité maximale</option><option value="sonnet">Claude Sonnet 5.5 — plus économique</option></select>
+          </label>
+          <label class="champ">Style
+            <select id="ia-style"><option value="naturel">Naturel</option><option value="pro">Professionnel</option><option value="decontracte">Décontracté</option></select>
+          </label>
+          <p class="legende">Le texte est envoyé à Anthropic <b>uniquement quand vous cliquez sur « Humaniser »</b>, avec votre clé, et l'appel est facturé sur votre compte Anthropic. Votre clé ne va nulle part ailleurs. N'utilisez pas ce mode sur un ordinateur partagé, et créez une clé avec une limite de dépense. Limite : 4 000 mots par texte.</p>
+        </div>
+        <p class="etat-ia" id="ia-etat" role="status" aria-live="polite"></p>
+      </details>
     </div>
 
     <div class="volet sortie-volet" id="volet-sortie" aria-live="polite">
@@ -83,7 +102,7 @@
   <section class="honnete">
     <h2>Ce que fait cet outil, et ce qu'il ne fait pas</h2>
     <ul>
-      <li><b>Il applique des règles écrites</b>, lisibles une par une dans la liste des changements. Il n'y a pas d'IA dans la page : tout se passe dans votre navigateur.</li>
+      <li><b>Par défaut, il applique des règles écrites</b>, lisibles une par une dans la liste des changements. Il n'y a pas d'IA dans la page et tout se passe dans votre navigateur. Le <b>mode IA</b> est facultatif : il demande à Claude de réécrire le texte avec votre propre clé API, puis la correction locale passe derrière.</li>
       <li><b>Il ne garantit rien sur les détecteurs d'IA.</b> Réécrire un texte change les signaux que ces outils examinent (formules répétées, rythme uniforme), mais personne ne peut promettre leur verdict : il varie d'un détecteur à l'autre et d'une version à l'autre, et ils se trompent dans les deux sens. Le moyen le plus solide reste d'ajouter vos propres faits, exemples et avis. Si une école, un éditeur ou un employeur demande de déclarer l'usage d'une IA, déclarez-le.</li>
       <li><b>La correction orthographique est volontairement prudente</b> : accents oubliés, mots collés, espaces, majuscules et mots répétés (« le le »). Elle ne vérifie ni les accords, ni les conjugaisons, ni les homophones (« a / à », « ce / se »…). Pour une relecture complète, passez ensuite le texte dans un correcteur dédié.</li>
       <li><b>Il ne vérifie aucun fait.</b> Un texte généré peut contenir des chiffres, citations ou sources inventés : relisez avant de publier.</li>
@@ -94,9 +113,10 @@
 </main>
 
 <footer class="pied">
-  <p>Aucune donnée collectée, aucun traceur, aucune requête après le chargement de la page.</p>
+  <p>Aucune donnée collectée, aucun traceur. Aucune requête réseau après le chargement de la page, sauf si vous activez le mode IA, qui n'envoie le texte qu'au clic sur « Humaniser ».</p>
 </footer>
 <script src="moteur.js"></script>
+<script src="ia.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
