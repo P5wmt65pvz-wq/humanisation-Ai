@@ -155,5 +155,7 @@
   Array.prototype.forEach.call(document.querySelectorAll('input[name=niveau], #forme, #corriger'), function (i) {
     i.addEventListener('change', function () { legende(); if (/\S/.test($('entree').value)) humaniser(); });
   });
+  /* Nettoyage : une ancienne version a pu mémoriser une clé dans ce navigateur. */
+  try { localStorage.removeItem('humaniseur.cle'); } catch (e) {}
   legende();
 })();
