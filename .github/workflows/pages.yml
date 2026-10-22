@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - run: mkdir _site && cp -r index.html mentions-legales.html coup-de-pouce.html memovox.html icone-180.png polices style.css app.js moteur.js _site/
+      - run: mkdir _site && cp -r index.html mentions-legales.html coup-de-pouce.html polices style.css app.js moteur.js _site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
