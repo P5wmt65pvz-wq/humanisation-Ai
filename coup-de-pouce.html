@@ -5,21 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Coup de pouce</title>
 <meta name="description" content="Choisis ta matière, ta classe et ce dont tu as besoin : ton prompt de révision est prêt à coller dans ChatGPT ou Claude. Gratuit, sans compte, rien n'est envoyé.">
-<meta name="color-scheme" content="light">
-<meta name="theme-color" content="#EEF0F2">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#101219">
 <style>
 /* Layout : un écran, fond clair où dérivent trois halos pastel (menthe, lilas, ciel) ; tout le reste en verre liquide façon Apple : flou + saturation, liseré de lumière, ombre douce. */
 @font-face{font-family:"Instrument Serif";src:url(polices/instrument-serif.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:"Instrument Serif";src:url(polices/instrument-serif-italic.woff2) format("woff2");font-weight:400;font-style:italic;font-display:swap}
 @font-face{font-family:"Manrope";src:url(polices/manrope.woff2) format("woff2");font-weight:200 800;font-style:normal;font-display:swap}
 :root{
-  color-scheme:light;
-  --ground:#EEF0F2; --ink:#14171C; --soft:#5E6672; --line:rgba(255,255,255,.75);
-  --glass:rgba(255,255,255,.42); --glass-on:rgba(214,246,246,.62); --teal:#1FA5AE; --teal-deep:#0E7F87;
-  --mint:#BDEFE3; --lilac:#D9CCFF; --sky:#C6E2FF; --peach:#FFE1D2;
+  color-scheme:dark;
+  --ground:#101219; --ink:#F2F4F8; --soft:#A3ABBA; --line:rgba(255,255,255,.16);
+  --glass:rgba(255,255,255,.07); --glass-on:rgba(79,209,217,.18); --teal:#4FD1D9; --teal-deep:#8BE6EB;
+  --mint:#1C5F5A; --lilac:#3F3282; --sky:#1F4479; --peach:#5C3640;
   --display:"Instrument Serif",Georgia,"Times New Roman",serif;
   --body:"Manrope",-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif;
-  --shadow:0 1px 1px rgba(20,23,28,.04),0 8px 24px -10px rgba(20,23,28,.18);
+  --shadow:0 1px 1px rgba(0,0,0,.2),0 10px 28px -12px rgba(0,0,0,.6);
 }
 *{box-sizing:border-box}
 html{overflow-x:clip;height:100%}
@@ -31,12 +31,12 @@ body{margin:0;min-height:100%;background:var(--ground);color:var(--ink);font-fam
 .bg span:nth-child(3){width:55vmax;height:55vmax;left:-10vmax;bottom:-30vmax;background:var(--sky);animation-duration:30s}
 .bg span:nth-child(4){width:35vmax;height:35vmax;right:-5vmax;bottom:-10vmax;background:var(--peach);opacity:.7;animation-duration:24s}
 @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(6vmax,4vmax) scale(1.12)}}
-.grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.35;background:radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.7),transparent 60%)}
+.grain{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.06),transparent 60%)}
 main{position:relative;z-index:1;max-width:540px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;gap:14px;
   padding-block:max(18px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));
   padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
 .glass{background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(255,255,255,.25),var(--shadow)}
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(255,255,255,.05),var(--shadow)}
 .hero{display:grid;gap:10px;padding-top:4px}
 .brand{justify-self:start;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.01em;border-radius:999px;padding:6px 12px 6px 8px}
 .brand i{width:18px;height:18px;border-radius:50%;background:conic-gradient(from 200deg,var(--teal),#8FB6FF,#C9A8FF,var(--teal));box-shadow:inset 0 1px 2px rgba(255,255,255,.8)}
@@ -46,19 +46,19 @@ h1 em{color:var(--teal-deep)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font:inherit;font-size:14px;font-weight:600;color:var(--ink);border-radius:999px;padding:7px 13px;cursor:pointer;transition:background .25s,box-shadow .25s,transform .15s}
 .chip:active,.need:active,.go:active{transform:scale(.97)}
-.chip[aria-pressed="true"]{background:var(--glass-on);color:var(--teal-deep);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 0 0 1px rgba(31,165,174,.35),0 6px 18px -8px rgba(31,165,174,.55)}
+.chip[aria-pressed="true"]{background:var(--glass-on);color:var(--teal-deep);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 0 1px rgba(79,209,217,.5),0 6px 20px -8px rgba(79,209,217,.6)}
 .needs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 .need{position:relative;text-align:left;font:inherit;color:var(--ink);border-radius:20px;padding:11px 13px;cursor:pointer;transition:background .25s,box-shadow .25s,transform .15s}
 .need strong{display:block;font-family:var(--display);font-style:italic;font-weight:400;font-size:23px;line-height:1.05}
 .need small{display:block;font-size:12.5px;color:var(--soft);margin-top:2px}
 .need .tick{position:absolute;top:11px;right:11px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:transparent;
-  background:rgba(255,255,255,.5);box-shadow:inset 0 0 0 1.5px rgba(20,23,28,.15);transition:background .2s,color .2s}
-.need[aria-pressed="true"]{background:var(--glass-on);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 0 0 1px rgba(31,165,174,.35),0 10px 26px -12px rgba(31,165,174,.6)}
-.need[aria-pressed="true"] .tick{background:var(--teal);color:#fff;box-shadow:none}
+  background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25);transition:background .2s,color .2s}
+.need[aria-pressed="true"]{background:var(--glass-on);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 0 1px rgba(79,209,217,.5),0 10px 30px -12px rgba(79,209,217,.6)}
+.need[aria-pressed="true"] .tick{background:var(--teal);color:var(--ground);box-shadow:none}
 .chip:focus-visible,.need:focus-visible,.go:focus-visible,.brand:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
-.go{margin-top:auto;position:relative;font:inherit;font-size:17px;font-weight:700;color:var(--ink);border-radius:22px;padding:16px 20px;cursor:pointer;overflow:hidden;
+.go{margin-top:auto;position:relative;font:inherit;font-size:17px;font-weight:700;color:#14171C;border-radius:22px;padding:16px 20px;cursor:pointer;overflow:hidden;
   background:linear-gradient(100deg,rgba(189,239,227,.85),rgba(198,226,255,.85) 45%,rgba(217,204,255,.9) 75%,rgba(255,225,210,.85));
-  border:1px solid rgba(255,255,255,.9);box-shadow:inset 0 1px 0 #fff,0 14px 34px -14px rgba(120,100,220,.55);transition:transform .15s}
+  border:1px solid rgba(255,255,255,.6);box-shadow:inset 0 1px 0 #fff,0 14px 40px -12px rgba(140,120,255,.55);transition:transform .15s}
 .go::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.65) 48%,transparent 66%);transform:translateX(-120%);animation:sheen 5s ease-in-out 1.5s infinite}
 @keyframes sheen{0%,70%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
 .go:disabled{opacity:.5;cursor:default}
@@ -66,12 +66,12 @@ h1 em{color:var(--teal-deep)}
 .foot{margin:0;text-align:center;font-size:11.5px;line-height:1.5;color:var(--soft)}
 .foot a{color:var(--soft)}
 .toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translate(-50%,160%);z-index:5;width:min(500px,calc(100% - 32px));
-  border-radius:22px;padding:14px 16px;display:grid;gap:10px;transition:transform .4s cubic-bezier(.2,.9,.3,1.15);background:rgba(255,255,255,.62)}
+  border-radius:22px;padding:14px 16px;display:grid;gap:10px;transition:transform .4s cubic-bezier(.2,.9,.3,1.15);background:rgba(24,27,36,.82)}
 .toast.on{transform:translate(-50%,0)}
 .toast p{margin:0;font-weight:800}
 .toast span{font-size:14px;color:var(--soft)}
 .toast .links{display:flex;gap:8px;flex-wrap:wrap}
-.toast a{font-size:14px;font-weight:700;text-decoration:none;color:#fff;background:var(--ink);border-radius:999px;padding:9px 15px}
+.toast a{font-size:14px;font-weight:700;text-decoration:none;color:var(--ground);background:var(--ink);border-radius:999px;padding:9px 15px}
 @media (max-height:700px){h1{font-size:38px}.need small{display:none}.chip{padding:6px 10px;font-size:13px}}
 @media (prefers-reduced-motion:reduce){.bg span,.go::after{animation:none}.chip,.need,.toast,.bg{transition:none}}
 </style>
